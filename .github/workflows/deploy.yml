@@ -1,0 +1,60 @@
+name: Deploy to mslee98.github.io
+
+on:
+  # main 브랜치에 푸시될 때 실행
+  push:
+    branches:
+      - main
+  # 수동 실행 가능
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 전체 히스토리 필요 (빌드 타임 포스트 생성용)
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      
+      - name: Setup Yarn
+        uses: actions/setup-yarn@v1
+        with:
+          yarn-version: 4.5.2
+      
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      
+      - name: Build
+        run: yarn docs:build
+      
+      - name: Checkout target repository
+        uses: actions/checkout@v4
+        with:
+          repository: mslee98/mslee98.github.io
+          token: ${{ secrets.DEPLOY_TOKEN }}  # Personal Access Token 필요
+          path: deploy
+          ref: main
+      
+      - name: Copy build files
+        run: |
+          # 기존 파일 삭제 (숨김 파일 제외)
+          find deploy -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.gitignore' -exec rm -rf {} +
+          # 빌드된 파일 복사
+          cp -r .vitepress/dist/* deploy/
+          cd deploy
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Deploy from ms-fundamentals [skip ci]" || exit 0
+          git push
