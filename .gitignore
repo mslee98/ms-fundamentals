@@ -16,3 +16,8 @@
 .vitepress/dist
 .vitepress/cache
 node_modules
+
+# VitePress
+.vitepress/dist
+.vitepress/cache
+node_modules
