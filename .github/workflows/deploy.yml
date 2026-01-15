@@ -48,13 +48,22 @@ jobs:
       
       - name: Copy build files
         run: |
-          # 기존 파일 삭제 (숨김 파일 제외)
-          find deploy -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.gitignore' -exec rm -rf {} +
+          cd deploy
+          # .git와 .gitignore를 제외한 모든 파일/디렉토리 삭제
+          find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.gitignore' -exec rm -rf {} +
           # 빌드된 파일 복사
-          cp -r .vitepress/dist/* deploy/
+          cp -r ../.vitepress/dist/* .
+          
+      - name: Commit and push
+        run: |
           cd deploy
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git commit -m "Deploy from ms-fundamentals [skip ci]" || exit 0
-          git push
+          # 변경사항이 있을 때만 커밋 (빈 커밋 방지)
+          if [ -n "$(git status --porcelain)" ]; then
+            git commit -m "Deploy from ms-fundamentals [skip ci]"
+            git push
+          else
+            echo "No changes to deploy"
+          fi
